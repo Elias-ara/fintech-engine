@@ -1,0 +1,23 @@
+# Ignorar arquivos de compilação (Java)
+target/
+build/
+out/
+*.class
+*.jar
+*.war
+
+# Ignorar arquivos da IDE (IntelliJ)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Ignorar arquivos de sistema e logs
+.DS_Store
+Thumbs.db
+*.log
+
+# SEGURANÇA
+.env
+secret.key
+config.properties
