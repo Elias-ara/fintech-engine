@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: fintech-engine
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fintech_engine
+    username: fintech
+    password: fintech123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+jwt:
+  secret: "fintech-engine-super-secret-key-256bits-long-change-in-production"
+  expiration-ms: 86400000

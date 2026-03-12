@@ -5,6 +5,8 @@ out/
 *.class
 *.jar
 *.war
+architecture.md
+docker-compose.yml
 
 # Ignorar arquivos da IDE (IntelliJ)
 .idea/
