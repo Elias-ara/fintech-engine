@@ -13,6 +13,7 @@ docker-compose.yml
 *.iml
 *.iws
 *.ipr
+.claude
 
 # Ignorar arquivos de sistema e logs
 .DS_Store
