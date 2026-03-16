@@ -12,6 +12,7 @@ import com.fintechengine.modules.transaction.entity.Transaction;
 import com.fintechengine.modules.transaction.repository.TransactionRepository;
 import com.fintechengine.modules.user.entity.User;
 import com.fintechengine.shared.exception.BusinessException;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +56,8 @@ class TransactionServiceTest {
         when(accountRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
+    // ── Deposit ─────────────────────────────────────────────────────────────
+
     @Test
     void deposit_shouldCreditAccountAndCompleteTransaction() {
         when(transactionRepository.findByIdempotencyKey("dep-001")).thenReturn(Optional.empty());
@@ -68,6 +71,29 @@ class TransactionServiceTest {
         assertThat(account.getCachedBalance()).isEqualByComparingTo("100.00");
         verify(ledgerEntryRepository).save(any(LedgerEntry.class));
     }
+
+    @Test
+    void deposit_shouldReturnExistingTransactionOnDuplicateIdempotencyKey() {
+        Transaction existing = new Transaction("dep-001", Transaction.OperationType.DEPOSIT, new BigDecimal("100.00"));
+        when(transactionRepository.findByIdempotencyKey("dep-001")).thenReturn(Optional.of(existing));
+
+        transactionService.deposit(new DepositRequest(accountId, new BigDecimal("100.00"), "dep-001"));
+
+        verify(transactionRepository, never()).save(any());
+        verify(ledgerEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void deposit_shouldThrowWhenAccountNotFound() {
+        UUID unknownId = UUID.randomUUID();
+        when(accountRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> transactionService.deposit(
+                new DepositRequest(unknownId, new BigDecimal("100.00"), "dep-unknown")
+        )).isInstanceOf(EntityNotFoundException.class);
+    }
+
+    // ── Withdrawal ──────────────────────────────────────────────────────────
 
     @Test
     void withdrawal_shouldDebitAccountAndCompleteTransaction() {
@@ -95,6 +121,19 @@ class TransactionServiceTest {
     }
 
     @Test
+    void withdrawal_shouldReturnExistingOnDuplicateIdempotencyKey() {
+        Transaction existing = new Transaction("saq-dup", Transaction.OperationType.WITHDRAWAL, new BigDecimal("50.00"));
+        when(transactionRepository.findByIdempotencyKey("saq-dup")).thenReturn(Optional.of(existing));
+
+        transactionService.withdrawal(new WithdrawalRequest(accountId, new BigDecimal("50.00"), "saq-dup"));
+
+        verify(transactionRepository, never()).save(any());
+        verify(ledgerEntryRepository, never()).save(any());
+    }
+
+    // ── Transfer ────────────────────────────────────────────────────────────
+
+    @Test
     void transfer_shouldDebitSourceAndCreditTarget() {
         User user2 = new User("Maria", "98765432100", "maria@email.com", "hashed");
         Account target = new Account(user2);
@@ -115,13 +154,25 @@ class TransactionServiceTest {
     }
 
     @Test
-    void deposit_shouldReturnExistingTransactionOnDuplicateIdempotencyKey() {
-        Transaction existing = new Transaction("dep-001", Transaction.OperationType.DEPOSIT, new BigDecimal("100.00"));
-        when(transactionRepository.findByIdempotencyKey("dep-001")).thenReturn(Optional.of(existing));
+    void transfer_shouldThrowWhenSourceEqualsTarget() {
+        assertThatThrownBy(() -> transactionService.transfer(
+                new TransferRequest(accountId, accountId, new BigDecimal("100.00"), "trf-self")
+        )).isInstanceOf(BusinessException.class)
+          .hasMessage("Source and target accounts must be different");
+    }
 
-        transactionService.deposit(new DepositRequest(accountId, new BigDecimal("100.00"), "dep-001"));
+    @Test
+    void transfer_shouldThrowWhenInsufficientBalance() {
+        // account has balance 0 (default from setUp)
+        UUID targetId = UUID.randomUUID();
+        User user2 = new User("Maria", "98765432100", "maria@email.com", "hashed");
+        Account target = new Account(user2);
+        when(accountRepository.findById(targetId)).thenReturn(Optional.of(target));
+        when(transactionRepository.findByIdempotencyKey("trf-broke")).thenReturn(Optional.empty());
 
-        verify(transactionRepository, never()).save(any());
-        verify(ledgerEntryRepository, never()).save(any());
+        assertThatThrownBy(() -> transactionService.transfer(
+                new TransferRequest(accountId, targetId, new BigDecimal("100.00"), "trf-broke")
+        )).isInstanceOf(BusinessException.class)
+          .hasMessage("Insufficient balance");
     }
 }
