@@ -12,8 +12,12 @@ import com.fintechengine.modules.transaction.entity.Transaction;
 import com.fintechengine.modules.transaction.repository.TransactionRepository;
 import com.fintechengine.shared.exception.BusinessException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 public class TransactionService {
@@ -108,6 +112,19 @@ public class TransactionService {
 
         tx.setStatus(Transaction.Status.COMPLETED);
         return TransactionResponse.from(transactionRepository.save(tx));
+    }
+
+    @Transactional(readOnly = true)
+    public TransactionResponse findById(UUID id) {
+        return transactionRepository.findById(id)
+                .map(TransactionResponse::from)
+                .orElseThrow(() -> new EntityNotFoundException("Transaction not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> findByAccountId(UUID accountId, Pageable pageable) {
+        return transactionRepository.findByAccountId(accountId, pageable)
+                .map(TransactionResponse::from);
     }
 
     private Account requireActiveAccount(String accountId) {

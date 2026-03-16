@@ -2,10 +2,11 @@ package com.fintechengine.modules.ledger.service;
 
 import com.fintechengine.modules.ledger.dto.LedgerEntryResponse;
 import com.fintechengine.modules.ledger.repository.LedgerEntryRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -18,10 +19,8 @@ public class LedgerService {
     }
 
     @Transactional(readOnly = true)
-    public List<LedgerEntryResponse> findByAccountId(UUID accountId) {
-        return ledgerEntryRepository.findByAccountIdOrderByCreatedAtDesc(accountId)
-                .stream()
-                .map(LedgerEntryResponse::from)
-                .toList();
+    public Page<LedgerEntryResponse> findByAccountId(UUID accountId, Pageable pageable) {
+        return ledgerEntryRepository.findByAccountIdOrderByCreatedAtDesc(accountId, pageable)
+                .map(LedgerEntryResponse::from);
     }
 }

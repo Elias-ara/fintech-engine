@@ -12,6 +12,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @Tag(name = "Transactions", description = "Deposits, withdrawals and transfers")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
@@ -43,5 +45,11 @@ public class TransactionController {
     @ResponseStatus(HttpStatus.CREATED)
     public TransactionResponse transfer(@Valid @RequestBody TransferRequest request) {
         return transactionService.transfer(request);
+    }
+
+    @Operation(summary = "Get transaction by ID")
+    @GetMapping("/{id}")
+    public TransactionResponse findById(@PathVariable UUID id) {
+        return transactionService.findById(id);
     }
 }
