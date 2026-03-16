@@ -2,10 +2,12 @@ package com.fintechengine.modules.account.service;
 
 import com.fintechengine.modules.account.dto.AccountResponse;
 import com.fintechengine.modules.account.dto.CreateAccountRequest;
+import com.fintechengine.modules.account.dto.UpdateAccountStatusRequest;
 import com.fintechengine.modules.account.entity.Account;
 import com.fintechengine.modules.account.repository.AccountRepository;
 import com.fintechengine.modules.user.entity.User;
 import com.fintechengine.modules.user.repository.UserRepository;
+import com.fintechengine.shared.exception.BusinessException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,5 +38,18 @@ public class AccountService {
         return accountRepository.findById(id)
                 .map(AccountResponse::from)
                 .orElseThrow(() -> new EntityNotFoundException("Account not found: " + id));
+    }
+
+    @Transactional
+    public AccountResponse updateStatus(UUID id, UpdateAccountStatusRequest request) {
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Account not found: " + id));
+
+        if (account.getStatus() == Account.Status.CLOSED) {
+            throw new BusinessException("Cannot change status of a closed account");
+        }
+
+        account.setStatus(request.status());
+        return AccountResponse.from(accountRepository.save(account));
     }
 }
