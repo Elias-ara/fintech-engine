@@ -1,5 +1,6 @@
 package com.fintechengine.security;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -38,6 +39,11 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) ->
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
+                )
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
